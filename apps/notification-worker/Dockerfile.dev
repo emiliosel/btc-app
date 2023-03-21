@@ -1,0 +1,25 @@
+FROM node:18.15.0
+
+WORKDIR /usr/src/app
+
+RUN rm -rf node_modules && \ 
+  apt-get update -qq && \
+  apt-get install -y -qq libzmq3-dev && \
+  apt-get install -y -qq cmake && \
+  apt-get install -y -qq libsodium-dev
+
+# ENV LD_LIBRARY_PATH=/usr/include
+# ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/
+
+COPY ./apps/btc-subscriber/package.json .
+
+RUN yarn install
+
+# RUN yarn rebuild zeromq
+
+# RUN yarn add zeromq@6.0.0-beta.16 --build-from-source
+# RUN npm rebuild zeromq --zmq-external --sodium-include-dir=/usr/include --sodium-lib-dir=/usr/lib/x86_64-linux-gnu/
+
+# RUN apt-get install cmake
+
+CMD ["yarn", "run" "dev"]

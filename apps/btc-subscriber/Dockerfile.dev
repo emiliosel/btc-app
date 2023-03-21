@@ -1,0 +1,15 @@
+FROM node:18.15.0
+
+WORKDIR /usr/src/app
+
+RUN rm -rf node_modules && \ 
+  apt-get update -qq && \
+  apt-get install -y -qq libzmq3-dev && \
+  apt-get install -y -qq cmake && \
+  apt-get install -y -qq libsodium-dev
+
+COPY ./apps/btc-subscriber/package.json .
+
+RUN yarn install
+
+CMD ["yarn", "run" "dev"]
