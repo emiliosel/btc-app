@@ -9,6 +9,12 @@
     "start": "next start"
   },
   "dependencies": {
+    "@emotion/cache": "latest",
+    "@emotion/react": "latest",
+    "@emotion/server": "latest",
+    "@emotion/styled": "latest",
+    "@mui/icons-material": "latest",
+    "@mui/material": "latest",
     "next": "latest",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

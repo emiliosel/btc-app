@@ -26,9 +26,9 @@ export class BTCService {
     return this.client.getTransaction(txid);
   }
 
-  async getRawTransaction(txid: string) {
+  async getRawTransaction(txid: string, decode?: boolean) {
     // TODO: fix types
-    return this.client.getRawTransaction(txid);
+    return this.client.getRawTransaction(txid, decode);
   }
 
   async getTransactionIdFromHex(txidHex: string) {
@@ -64,6 +64,11 @@ export class BTCService {
     // TODO: fix types
     const addressess = await this.client.getAddressesByLabel("");
     return Object.keys(addressess);
+  }
+
+  async transferBitcoin(toAddress: string, amount: number) {
+    const txid = await this.client.sendToAddress(toAddress, amount);
+    return txid;
   }
 
 }

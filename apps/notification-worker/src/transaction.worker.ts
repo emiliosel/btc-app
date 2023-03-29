@@ -7,67 +7,31 @@ import { UserConnectionsRepository } from "./repositories/user-connection.reposi
 import { BTCService } from "./services/btc.service";
 
 export class TransactionChangeWorker {
-
   constructor(
     private readonly btcService: BTCService,
     private readonly transactionSubRepo: TransactionSubscriptionsRepository,
     private readonly connectionsRepo: UserConnectionsRepository,
     private readonly notificationRepo: NotificationsRepository,
     private readonly rabbitmqPublisher: RabbitMQPublisher,
-    private readonly addressesSubRepo: AddressSubscriptionsRepository,
+    private readonly addressesSubRepo: AddressSubscriptionsRepository
   ) {}
 
   public async run(txid: string) {
     console.log(`[TransactionChangeWorker] running...`, { txid });
     txid = await this.btcService.getTransactionIdFromHex(txid);
-    console.log({ txid })
     // get transaction info
     const transInfo = await this.btcService.getTransactionInfo(txid);
+    const transRawInfo = await this.btcService.getRawTransaction(txid, true);
 
-    // check if any subscriptions to transaction hash
-    const transactionSubscriptions =
-      await this.transactionSubRepo.findSubscriptions(transInfo.hash);
+    await this.findSubscriptionsForTransactionAndNotify(transInfo.hash, transInfo);
 
-    for (const subscription of transactionSubscriptions) {
-      // create database notification
-      await this.notificationRepo.saveNotification({
-        forUserId: subscription.userId,
-        type: "transaction",
-        data: transInfo,
-      });
 
-      // send event queue for notification
-      await this.rabbitmqPublisher.publishMessage(
-        JSON.stringify({
-          type: "notification:transaction",
-          payload: {
-            forUserId: subscription.userId,
-            type: "transaction",
-            data: transInfo,
-          },
-        })
-      );
-    }
-
-    if (Array.isArray(transInfo.vin)) {
+    if (Array.isArray(transRawInfo.vin)) {
       // Loop through the vin array to extract the addresses
-      for (const input of transInfo.vin) {
+      for (const input of transRawInfo.vin) {
         try {
           const scriptSig = await this.btcService.getRawTransaction(input.txid);
           const address = scriptSig.vout[input.vout].scriptPubKey.addresses[0];
-          console.log(`Input address: ${address}`);
-          await this.findSubscriptionsForAddressAndNotify(address, transInfo);
-        } catch (er) {
-          console.log(`[ERROR]: ${(er as Error).message}`);
-        }
-      }
-    }
-
-    if (Array.isArray((transInfo as any).details as any)) {
-      for (const detail of (transInfo as any).details as {address: string}[]) {
-        try {
-          const address = detail.address;
-          console.log(`Input address: ${address}`);
           await this.findSubscriptionsForAddressAndNotify(address, transInfo);
         } catch (er) {
           console.log(`[ERROR]: ${(er as Error).message}`);
@@ -76,12 +40,12 @@ export class TransactionChangeWorker {
     }
 
     // Loop through the vout array to extract the addresses
-    if (Array.isArray(transInfo.vout)) {
-      for (const output of transInfo.vout) {
+    if (Array.isArray(transRawInfo.vout)) {
+      for (const output of transRawInfo.vout) {
         try {
           const address = output.scriptPubKey.addresses[0];
 
-          // check if any subscriptions and if user online
+          // check if any subscriptions
           // if yes send events to rabbit queue to notify user with {userid, address | transaction }
           await this.findSubscriptionsForAddressAndNotify(address, transInfo);
           console.log(`Output address: ${address}`);
@@ -92,7 +56,40 @@ export class TransactionChangeWorker {
     }
   }
 
-  private async findSubscriptionsForAddressAndNotify(address: string, transInfo: Transaction) {
+  private async findSubscriptionsForTransactionAndNotify(
+    txid: string,
+    transInfo: Transaction
+  ) {
+    // check if any subscriptions to transaction hash
+    const transactionSubscriptions =
+      await this.transactionSubRepo.findSubscriptions(transInfo.txid);
+
+    for (const subscription of transactionSubscriptions) {
+      // create database notification
+      await this.notificationRepo.saveNotification({
+        forUserId: subscription.userId,
+        type: "transaction",
+        data: transInfo.txid,
+      });
+
+      // send event queue for notification
+      await this.rabbitmqPublisher.publishMessage(
+        JSON.stringify({
+          type: "notification:transaction",
+          payload: {
+            forUserId: subscription.userId,
+            type: "transaction",
+            data: transInfo.txid,
+          },
+        })
+      );
+    }
+  }
+
+  private async findSubscriptionsForAddressAndNotify(
+    address: string,
+    transInfo: Transaction
+  ) {
     const addressSubscriptions = await this.addressesSubRepo.findSubscriptions(
       address
     );
@@ -102,7 +99,7 @@ export class TransactionChangeWorker {
       await this.notificationRepo.saveNotification({
         forUserId: subscription.userId,
         type: "address",
-        data: transInfo,
+        data: address,
       });
 
       // send event queue for notification
@@ -112,7 +109,7 @@ export class TransactionChangeWorker {
           payload: {
             forUserId: subscription.userId,
             type: "address",
-            data: transInfo,
+            data: address,
           },
         })
       );

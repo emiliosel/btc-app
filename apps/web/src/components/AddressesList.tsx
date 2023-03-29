@@ -1,7 +1,13 @@
+import { useCallback } from "react";
 import useFetch from "../hooks/useFetch"
+import { CreateAddress } from "./CreateAddress";
 
 export const AddressesList = () => {
-  const {loading, error, data} = useFetch<{addresses: string[]}>("http://localhost:3001/api/v1/addresses");
+  const {loading, error, data, fetchData} = useFetch<{addresses: string[]}>("http://localhost:3001/api/v1/addresses");
+
+  const onCreatedAddress = useCallback(() => {
+    fetchData()
+  }, [fetchData])
 
   if (loading) {
     return <h3>Loading...</h3>
@@ -15,10 +21,15 @@ export const AddressesList = () => {
     return <h3>No data found!</h3>
   }
 
-  return <>
-    <h4>Addresses</h4>
-    <ul>
-      {data.addresses.map((address, i) => <li key={i}>{address}</li>)}
-    </ul>
-  </>
+  return (
+    <>
+      <h4>Addresses</h4>
+      <CreateAddress onCreated={onCreatedAddress}/>
+      <ul>
+        {data.addresses.map((address, i) => (
+          <li key={address}>{address}</li>
+        ))}
+      </ul>
+    </>
+  );
 }

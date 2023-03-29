@@ -6,6 +6,7 @@ import { BTCService } from "./services/btc.service";
 import { getConnection } from "./mongodb";
 import { AddressSubscriptionsRepository } from "./repositories/address-subscriptions.repository";
 import { TransactionSubscriptionsRepository } from "./repositories/transaction-subscriptions.repository";
+import { NotificationsRepository } from "./repositories/notification.repository";
 
 export const createServer = async () => {
   const app = express();
@@ -13,6 +14,9 @@ export const createServer = async () => {
   const dbConnection = await getConnection();
   const addressSubscRepo = new AddressSubscriptionsRepository(dbConnection);
   const transactionSubscRepo = new TransactionSubscriptionsRepository(dbConnection);
+  const notificationRepo = new NotificationsRepository(
+    dbConnection
+  );
 
   await transactionSubscRepo.init();
   await addressSubscRepo.init();
@@ -43,8 +47,8 @@ export const createServer = async () => {
       }
 
       try {
-        const transactionInfo = await btcService.getAddressInfo(address);
-        return res.json({ transaction: transactionInfo });
+        const addressInfo = await btcService.apiGetAddressInfo(address);
+        return res.json({ address: addressInfo });
       } catch (er) {
         console.log(`[ERROR]: ${(er as Error).message}`);
 
@@ -71,7 +75,7 @@ export const createServer = async () => {
       }
 
       try {
-        const transactionInfo = await btcService.getTransactionInfo(
+        const transactionInfo = await btcService.apiGetTransactionInfo(
           transactionId
         );
         return res.json({ transaction: transactionInfo });
@@ -87,6 +91,35 @@ export const createServer = async () => {
         return res.json({ addresses });
       } catch (er) {
         console.log(`[ERROR]: ${(er as Error).message}`);
+        return res.status(500).json({ message: "Server error!" });
+      }
+    })
+
+    .get("/api/v1/notifications", async (req, res) => {
+      try {
+        const userId = req.query.userId;
+        const queryLimit = parseInt(req.query.limit);
+        const querySkip = parseInt(req.query.skip);
+        const limit = !isNaN(queryLimit) && queryLimit < 100 && queryLimit > 0 ? queryLimit : 10;
+        const skip = querySkip >= 0 && !isNaN(querySkip) ? queryLimit : 0;
+
+        const notifications = await notificationRepo.getNotifications(userId, {
+          limit, 
+          skip
+        });
+        return res.json({ notifications });
+      } catch (er) {
+        console.log(`[ERROR]: ${(er as Error).message}`);
+        return res.status(500).json({ message: "Server error!" });
+      }
+    })
+
+    .post("/api/v1/createAddress", async (req, res) => {
+      try {
+        const address = await btcService.getNewAddress({});
+        return res.status(201).json({ address });
+      } catch (er) {
+        console.log(`[ERROR]: ${er.message}`);
         return res.status(500).json({ message: "Server error!" });
       }
     })
@@ -122,6 +155,28 @@ export const createServer = async () => {
       try {
         await btcService.generateToAddress(address, blocks);
         return res.status(201).json({ ok: true });
+      } catch (er) {
+        console.log(`[ERROR]: ${er.message}`);
+        return res.status(500).json({ message: "Server error!" });
+      }
+    })
+
+    .post("/api/v1/generateForAddress", async (req, res) => {
+      const { blocks, address } = req.body;
+      try {
+        await btcService.generateToAddress(address, blocks);
+        return res.status(201).json({ ok: true });
+      } catch (er) {
+        console.log(`[ERROR]: ${er.message}`);
+        return res.status(500).json({ message: "Server error!" });
+      }
+    })
+
+    .post("/api/v1/transfer", async (req, res) => {
+      const { amount, toAddress } = req.body;
+      try {
+        const txid = await btcService.transferBitcoin(toAddress, amount);
+        return res.status(201).json({ ok: true, txid });
       } catch (er) {
         console.log(`[ERROR]: ${er.message}`);
         return res.status(500).json({ message: "Server error!" });
