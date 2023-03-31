@@ -38,7 +38,7 @@ type SubscribeToAddressProps = {
 
 function SubscribeToAddress({ hash }: SubscribeToAddressProps) {
   const { loading, error, data, postData } = useFetch(
-    "http://localhost:3001/api/v1/subscribeToAddress",
+    `${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/subscribeToAddress`,
     {},
     "POST"
   );

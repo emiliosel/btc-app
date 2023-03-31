@@ -23,8 +23,7 @@ export class TransactionChangeWorker {
     const transInfo = await this.btcService.getTransactionInfo(txid);
     const transRawInfo = await this.btcService.getRawTransaction(txid, true);
 
-    await this.findSubscriptionsForTransactionAndNotify(transInfo.hash, transInfo);
-
+    await this.findSubscriptionsForTransactionAndNotify(transInfo);
 
     if (Array.isArray(transRawInfo.vin)) {
       // Loop through the vin array to extract the addresses
@@ -43,12 +42,14 @@ export class TransactionChangeWorker {
     if (Array.isArray(transRawInfo.vout)) {
       for (const output of transRawInfo.vout) {
         try {
-          const address = output.scriptPubKey.addresses[0];
+          const address = output.scriptPubKey?.addresses[0];
 
-          // check if any subscriptions
-          // if yes send events to rabbit queue to notify user with {userid, address | transaction }
-          await this.findSubscriptionsForAddressAndNotify(address, transInfo);
-          console.log(`Output address: ${address}`);
+          if (address) {
+            // check if any subscriptions
+            // if yes send events to rabbit queue to notify user with {userid, address | transaction }
+            await this.findSubscriptionsForAddressAndNotify(address, transInfo);
+            console.log(`Output address: ${address}`);
+          }
         } catch (er) {
           console.log(`[ERROR]: ${(er as Error).message}`);
         }
@@ -57,13 +58,14 @@ export class TransactionChangeWorker {
   }
 
   private async findSubscriptionsForTransactionAndNotify(
-    txid: string,
     transInfo: Transaction
   ) {
+    console.log(`Finding subscriptions for txid: ${transInfo.txid}`)
     // check if any subscriptions to transaction hash
     const transactionSubscriptions =
       await this.transactionSubRepo.findSubscriptions(transInfo.txid);
 
+    console.log(`Found subscriptions: ${transactionSubscriptions.length}`)
     for (const subscription of transactionSubscriptions) {
       // create database notification
       await this.notificationRepo.saveNotification({

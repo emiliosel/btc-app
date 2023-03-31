@@ -3,7 +3,7 @@ import useFetch from "../hooks/useFetch"
 import { gloabalConfig } from "../config";
 
 export const SubscribeToAddress = () => {
-  const {loading, error, data, postData} = useFetch("http://localhost:3001/api/v1/subscribeToAddress", {}, "POST");
+  const {loading, error, data, postData} = useFetch(`${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/subscribeToAddress`, {}, "POST");
   const [address, setAddress] = useState<string>("");
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>

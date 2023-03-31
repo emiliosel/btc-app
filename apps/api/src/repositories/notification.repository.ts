@@ -27,13 +27,24 @@ export class NotificationsRepository {
     return result.insertedId;
   }
 
-  async getNotifications(userId: string, {limit, skip}: {limit: number, skip: number}) {
-    const result = await this.collection.find({ userId })
+  async getNotifications(userId: string, {limit, after}: {limit: number, after: string}) {
+    const query = await this.collection.find({ userId })
       .sort({created: -1})
       .limit(limit)
-      .skip(skip)
-      .toArray();
 
-    return result;
+    if (!after) {
+      return query.toArray();
+    }
+
+    const afterDate = Date.parse(after);
+
+    if (isNaN(afterDate)) {
+      throw new Error('Invalid after date!')
+    }
+
+    console.log({after, afterDate: new Date(after)})
+    query.filter({ created: { $lt: new Date(after) }})
+
+    return query.toArray();
   }
 }

@@ -20,7 +20,7 @@ type ApiAddressInfoResponseData = {
 export const GetAddressInfo = () => {
   const { loading, error, data, fetchData } =
     useFetch<ApiAddressInfoResponseData>(
-      "http://localhost:3001/api/v1/addressInfo",
+      `${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/addressInfo`,
       { fetchOnRender: false }
     );
   const [address, setAddress] = useState<string>("");

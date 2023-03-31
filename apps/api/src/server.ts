@@ -99,13 +99,12 @@ export const createServer = async () => {
       try {
         const userId = req.query.userId;
         const queryLimit = parseInt(req.query.limit);
-        const querySkip = parseInt(req.query.skip);
+        const after = req.query.after;
         const limit = !isNaN(queryLimit) && queryLimit < 100 && queryLimit > 0 ? queryLimit : 10;
-        const skip = querySkip >= 0 && !isNaN(querySkip) ? queryLimit : 0;
 
         const notifications = await notificationRepo.getNotifications(userId, {
           limit, 
-          skip
+          after,
         });
         return res.json({ notifications });
       } catch (er) {

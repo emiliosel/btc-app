@@ -3,7 +3,7 @@ import useFetch from "../hooks/useFetch";
 
 export const GenerateForAddress = () => {
   const { loading, error, data, postData } = useFetch(
-    "http://localhost:3001/api/v1/generateForAddress",
+    `${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/generateForAddress`,
     {},
     "POST"
   );

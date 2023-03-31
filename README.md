@@ -24,6 +24,9 @@ Run the following command:
 docker-compose up
 ```
 
+Open browser on:
+[http://localhost:3333](http://localhost:3333)
+
 ### Docker
 
 This repo is configured to be built with Docker, and Docker compose. To build all apps in this repo:

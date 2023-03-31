@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { gloabalConfig } from "../config";
 import useFetch from "../hooks/useFetch";
 import Button from "@mui/material/Button";
@@ -20,9 +20,10 @@ function useEventSource(url: string) {
 
 function NotificationsList() {
   const [messages, setMessages] = useState<any[]>([]);
+  const [couldHaveMore, setHasMore] = useState<boolean>(true);
   // TODO: add config
   const eventSource = useEventSource(
-    `http://localhost:3002/sse?userId=${gloabalConfig.USER_ID}`
+    `${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/sse?userId=${gloabalConfig.USER_ID}`
   );
 
   const { loading, data, fetchData } = useFetch<{
@@ -31,19 +32,35 @@ function NotificationsList() {
       created: string;
       data: any;
     }[];
-  }>("http://localhost:3001/api/v1/notifications");
-
+  }>(`${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/notifications`);
+  const loadMore = useFetch<{
+    notifications: {
+      type: "transaction" | "address";
+      created: string;
+      data: any;
+    }[];
+  }>(`${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/notifications`, { fetchOnRender: false });
+  
   useEffect(() => {
-    if (data) {
-      setMessages((prevNot) => [...prevNot, ...data.notifications]);
+    if (data && Array.isArray(data.notifications)) {
+      setMessages(data.notifications);
     }
   }, [data]);
 
-  const onLoadMore = () => {
-    if ( data?.notifications.length ) {
-      fetchData({ query: { skip: data?.notifications.length.toString() }})
+  const onLoadMore = useCallback(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && couldHaveMore) {
+      loadMore.fetchData({ query: { after: lastMessage.created }})
+        .then((data) => {
+          if (data.notifications.length) {
+            setMessages((prevNot) => [...prevNot, ...data.notifications]);
+            setHasMore(true);
+          } else {
+            setHasMore(false);
+          }
+        })
     }
-  }
+  }, [messages]);
 
   useEffect(() => {
     if (eventSource) {
@@ -87,9 +104,9 @@ function NotificationsList() {
 
       {loading && "Loading..."}
 
-      {Boolean(messages.length) && (
+      {Boolean(messages.length) && couldHaveMore && (
         <Button variant="outlined" onClick={onLoadMore}>
-          load more
+          load more {loadMore.loading && '...'}
         </Button>
       )}
     </div>

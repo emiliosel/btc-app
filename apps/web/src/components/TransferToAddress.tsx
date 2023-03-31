@@ -3,7 +3,7 @@ import useFetch from "../hooks/useFetch";
 
 export const TransferToAddress = () => {
   const { loading, error, data, postData } = useFetch(
-    "http://localhost:3001/api/v1/transfer",
+    `${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/transfer`,
     {},
     "POST"
   );
@@ -37,7 +37,7 @@ export const TransferToAddress = () => {
         <button type="submit">Submit{loading ? "..." : ""}</button>
       </form>
 
-      {data && <div>{`Transactiond id: ${data}`}</div>}
+      {data && <div>{`Transactiond id: ${JSON.stringify(data)}`}</div>}
       {error && <div>{`Error: ${error.message}`}</div>}
       <hr />
     </>

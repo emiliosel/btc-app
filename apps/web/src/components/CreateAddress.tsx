@@ -2,7 +2,7 @@ import useFetch from "../hooks/useFetch";
 
 export const CreateAddress = ({ onCreated }: { onCreated: () => void}) => {
   const { loading, error, data, postData } = useFetch(
-    "http://localhost:3001/api/v1/createAddress",
+    `${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/createAddress`,
     {},
     "POST"
   );

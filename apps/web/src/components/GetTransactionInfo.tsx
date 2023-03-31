@@ -7,7 +7,7 @@ import { Stack, Typography } from "@mui/material";
 
 export const GetTransactionInfo = () => {
   const { loading, error, data, fetchData } = useFetch<any>(
-    "http://localhost:3001/api/v1/transactionInfo", {fetchOnRender: false}
+    `${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/transactionInfo`, {fetchOnRender: false}
   );
   const [transaction, setTransaction] = useState<string>("");
 

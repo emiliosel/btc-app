@@ -3,7 +3,7 @@ import useFetch from "../hooks/useFetch"
 import { CreateAddress } from "./CreateAddress";
 
 export const AddressesList = () => {
-  const {loading, error, data, fetchData} = useFetch<{addresses: string[]}>("http://localhost:3001/api/v1/addresses");
+  const {loading, error, data, fetchData} = useFetch<{addresses: string[]}>(`${(() => typeof window !== 'undefined' ? window.location.origin : '')()}/api/v1/addresses`);
 
   const onCreatedAddress = useCallback(() => {
     fetchData()
